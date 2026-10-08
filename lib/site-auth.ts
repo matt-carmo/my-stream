@@ -51,23 +51,42 @@ export async function verifyPassword(
   )
 }
 
-/** Create a signed `v1.<random>.<sig>` cookie value. */
-export async function createSessionValue(secret: string): Promise<string> {
-  const rand = toHex(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer)
-  const sig = await hmacHex(secret, rand)
-  return `v1.${rand}.${sig}`
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30
+
+// Tolerates small clock differences between the servers that sign and verify
+const CLOCK_SKEW_SECONDS = 60
+
+function nowSeconds() {
+  return Math.floor(Date.now() / 1000)
 }
 
-/** Validate a `v1.<random>.<sig>` cookie value. */
+/** Create a signed `v2.<random>.<issuedAt>.<sig>` cookie value. */
+export async function createSessionValue(secret: string): Promise<string> {
+  const rand = toHex(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer)
+  const payload = `v2.${rand}.${nowSeconds()}`
+  const sig = await hmacHex(secret, payload)
+  return `${payload}.${sig}`
+}
+
+/**
+ * Validate a `v2.<random>.<issuedAt>.<sig>` cookie value. Expiry is enforced
+ * here, not just by the browser, so a copied cookie stops working after
+ * SESSION_MAX_AGE_SECONDS. Legacy `v1` cookies (no issuedAt) are rejected.
+ */
 export async function verifySessionValue(
   secret: string,
   value: string | undefined | null
 ): Promise<boolean> {
   if (!value) return false
   const parts = value.split(".")
-  if (parts.length !== 3 || parts[0] !== "v1") return false
-  const [, rand, sig] = parts
-  if (!rand || !sig) return false
-  const expected = await hmacHex(secret, rand)
+  if (parts.length !== 4 || parts[0] !== "v2") return false
+  const [version, rand, issuedAtStr, sig] = parts
+  const issuedAt = Number(issuedAtStr)
+  if (!rand || !sig || !/^\d+$/.test(issuedAtStr)) return false
+
+  const age = nowSeconds() - issuedAt
+  if (age > SESSION_MAX_AGE_SECONDS || age < -CLOCK_SKEW_SECONDS) return false
+
+  const expected = await hmacHex(secret, `${version}.${rand}.${issuedAtStr}`)
   return timingSafeEqualHex(sig.toLowerCase(), expected.toLowerCase())
 }

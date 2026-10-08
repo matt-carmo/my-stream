@@ -143,27 +143,30 @@ export function AccountToggles({ type, id }: AccountTogglesProps) {
       </div>
       <div className="flex items-center gap-1">
         <span className="mr-1 text-xs text-muted-foreground">Your rating:</span>
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            type="button"
-            disabled={busy !== null}
-            aria-label={`Rate ${n} out of 10`}
-            onClick={() => rate(states.rated === n ? null : n)}
-            className="rounded p-0.5 transition-transform hover:scale-110 disabled:opacity-50"
-          >
-            <HugeiconsIcon
-              icon={StarIcon}
-              strokeWidth={1.5}
-              className={cn(
-                "size-4",
-                states.rated !== null && n <= states.rated
-                  ? "text-yellow-500"
-                  : "text-muted-foreground"
-              )}
-            />
-          </button>
-        ))}
+        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => {
+          const filled = states.rated !== null && n <= states.rated
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={busy !== null}
+              aria-label={`Rate ${n} out of 10`}
+              aria-pressed={states.rated === n}
+              onClick={() => rate(states.rated === n ? null : n)}
+              className="rounded p-0.5 transition-transform hover:scale-110 disabled:opacity-50"
+            >
+              <HugeiconsIcon
+                icon={StarIcon}
+                strokeWidth={1.5}
+                fill={filled ? "currentColor" : "none"}
+                className={cn("size-4", filled ? "text-yellow-500" : "text-muted-foreground")}
+              />
+            </button>
+          )
+        })}
+        {states.rated !== null && (
+          <span className="ml-1 text-xs font-semibold text-foreground">{states.rated}/10</span>
+        )}
         {states.rated !== null && (
           <button
             type="button"

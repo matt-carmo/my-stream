@@ -19,24 +19,28 @@ export function ConnectTmdbPrompt({ title }: { title: string }) {
   )
 }
 
+const MEDIA_TABS = [
+  { value: "movie", label: "Movies" },
+  { value: "tv", label: "TV Shows" },
+] as const
+
 export function AccountListTabs({
   base,
   active,
+  params,
+  tabs = MEDIA_TABS,
 }: {
   base: string
-  active: "movie" | "tv"
+  active: string
+  params?: Record<string, string>
+  tabs?: readonly { value: string; label: string }[]
 }) {
   return (
-    <div className="flex gap-2">
-      {(
-        [
-          { value: "movie", label: "Movies" },
-          { value: "tv", label: "TV Shows" },
-        ] as const
-      ).map((t) => (
+    <div className="flex flex-wrap gap-2">
+      {tabs.map((t) => (
         <Link
           key={t.value}
-          href={`${base}?type=${t.value}`}
+          href={`${base}?${new URLSearchParams({ ...params, type: t.value })}`}
           className={
             active === t.value
               ? "inline-flex h-8 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground"

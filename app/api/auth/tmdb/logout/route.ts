@@ -5,8 +5,12 @@ import {
   TMDB_USER_COOKIE,
   deleteSession,
 } from "@/lib/tmdb-account"
+import { rejectWithoutSiteSession } from "@/lib/site-session"
 
 export async function POST() {
+  const denied = await rejectWithoutSiteSession()
+  if (denied) return denied
+
   const store = await cookies()
   const sessionId = store.get(TMDB_SESSION_COOKIE)?.value
   if (sessionId) await deleteSession(sessionId)

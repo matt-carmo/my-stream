@@ -6,6 +6,8 @@ const TMDB_BASE = "https://api.themoviedb.org/3"
 
 export const TMDB_SESSION_COOKIE = "tmdb-session"
 export const TMDB_USER_COOKIE = "tmdb-user"
+// Binds the callback to the browser that started the flow (acts as OAuth "state")
+export const TMDB_REQUEST_TOKEN_COOKIE = "tmdb-request-token"
 
 export type TmdbAccount = {
   id: number

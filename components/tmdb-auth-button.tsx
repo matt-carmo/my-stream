@@ -1,9 +1,20 @@
 "use client"
 
-import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { ArrowDown01Icon, Logout01Icon } from "@hugeicons/core-free-icons"
+import {
+  Button,
+  buttonVariants,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui"
+import { cn } from "@/lib/utils"
 
 export type TmdbMeState =
   | { status: "loading" }
@@ -46,9 +57,7 @@ export function useTmdbMe(): {
   return { me, signOut }
 }
 
-export function TmdbAuthButton() {
-  const { me, signOut } = useTmdbMe()
-
+export function TmdbAuthButton({ me, signOut }: ReturnType<typeof useTmdbMe>) {
   if (me.status === "loading") return null
 
   if (me.status === "out") {
@@ -67,25 +76,25 @@ export function TmdbAuthButton() {
   }
 
   return (
-    <div className="hidden shrink-0 items-center gap-2 sm:flex">
-      <Link
-        href="/watchlist"
-        className="text-xs text-muted-foreground hover:text-foreground"
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={cn(
+          buttonVariants({ variant: "ghost", size: "sm" }),
+          "hidden max-w-40 shrink-0 text-muted-foreground sm:inline-flex"
+        )}
       >
-        Watchlist
-      </Link>
-      <Link
-        href="/favorites"
-        className="text-xs text-muted-foreground hover:text-foreground"
-      >
-        Favorites
-      </Link>
-      <span className="max-w-24 truncate text-xs text-muted-foreground">
-        {me.username}
-      </span>
-      <Button size="sm" variant="ghost" onClick={signOut}>
-        Sign out
-      </Button>
-    </div>
+        <span className="truncate">{me.username}</span>
+        <HugeiconsIcon icon={ArrowDown01Icon} strokeWidth={2} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>TMDB account</DropdownMenuLabel>
+          <DropdownMenuItem variant="destructive" onClick={signOut}>
+            <HugeiconsIcon icon={Logout01Icon} strokeWidth={1.5} />
+            Sign out
+          </DropdownMenuItem>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

@@ -5,14 +5,25 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 import { Button, Input } from "@/components/ui"
 
+// Only same-origin paths are allowed after login, so a crafted ?next= link
+// can't send the user to another site (e.g. "//evil.com" or "/\evil.com").
+function getSafeRedirect(next: string | null) {
+  if (!next) return "/"
+  try {
+    const url = new URL(next, window.location.origin)
+    if (url.origin !== window.location.origin) return "/"
+    return `${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return "/"
+  }
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-
-  const next = searchParams.get("next") || "/"
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -31,7 +42,7 @@ function LoginForm() {
         setError(data?.error ?? "Wrong password")
         return
       }
-      router.push(next)
+      router.push(getSafeRedirect(searchParams.get("next")))
       router.refresh()
     } catch {
       setError("Something went wrong. Try again.")

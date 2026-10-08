@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getAccountStates } from "@/lib/tmdb-account"
 import { requireTmdbAccount } from "@/lib/tmdb-session"
+import { rejectWithoutSiteSession } from "@/lib/site-session"
 
 export async function GET(req: Request) {
+  const denied = await rejectWithoutSiteSession()
+  if (denied) return denied
+
   const authed = await requireTmdbAccount()
   if (!authed) {
     return NextResponse.json({ error: "TMDB not connected" }, { status: 401 })

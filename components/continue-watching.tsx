@@ -47,14 +47,14 @@ function ContinueCard({
           type={item.type}
           id={item.id}
           title={title}
-          className="absolute right-10 top-1.5 z-10"
+          className="absolute bottom-1.5 right-1.5 z-10"
         />
         {item.type === "tv" && (
           <span className="absolute left-2 top-2 rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground">
             S{item.season} E{item.episode}
           </span>
         )}
-        <span className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 text-xs font-medium text-white">
+        <span className="absolute bottom-2 left-2 right-10 flex items-center gap-1.5 text-xs font-medium text-white">
           <HugeiconsIcon icon={PlayIcon} strokeWidth={1.5} className="size-3.5 shrink-0" />
           <span className="truncate">
             {item.type === "movie"

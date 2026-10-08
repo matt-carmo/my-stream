@@ -39,15 +39,29 @@ them through an external embed player. Single-user, private site.
 ## Auth model (two independent layers)
 
 1. **Site gate** — single shared password, no per-user accounts.
-   `middleware.ts` protects everything except `/login`, `/api/auth/*` and
-   static assets (pages → redirect `/login?next=…`, APIs → 401).
-   `POST /api/auth/login` compares SHA-256 timing-safe, sets httpOnly
-   `site-auth` (`v1.<rand>.<hmac>`, 30d). `POST /api/auth/logout` clears it.
+   `middleware.ts` protects everything except `/login`, `/api/auth/login`,
+   `/api/auth/logout` and `/_next/*` + `favicon.ico` (excluded by path prefix in
+   `config.matcher` — never by file extension); pages → redirect
+   `/login?next=…`, APIs → 401. The TMDB connect routes are **not** public.
+   It also rejects (403) any non-GET request whose `Origin` isn't this host.
+   Global security headers (X-Frame-Options/frame-ancestors, nosniff,
+   Referrer-Policy, HSTS in prod, no X-Powered-By) live in `next.config.mjs`;
+   the `/watch` CSP overrides the global one, so it repeats `frame-ancestors`.
+   `POST /api/auth/login` compares SHA-256 timing-safe, is rate limited
+   (`lib/rate-limit.ts`: 5/IP + 30 global per 15 min) and sets httpOnly
+   `site-auth` (`v2.<rand>.<issuedAt>.<hmac>`); expiry (30d) is enforced
+   server-side, so a copied cookie dies after 30d. Rotating `SITE_AUTH_SECRET`
+   signs everyone out. `POST /api/auth/logout` clears it. `?next=` is
+   validated as same-origin before redirecting.
+   Defence in depth: `lib/site-session.ts` re-checks the cookie in
+   `app/(site)/layout.tsx` and at the top of every protected API route.
    Helpers: `lib/site-auth.ts` (WebCrypto only — must stay Edge-safe for middleware).
 2. **TMDB login** (optional, per browser) — official flow
    `token/new → themoviedb.org/authenticate → session/new`:
-   `GET /api/auth/tmdb/start` → `GET /api/auth/tmdb/callback`
-   (stores httpOnly `tmdb-session` + readable `tmdb-user`, 30d) →
+   `GET /api/auth/tmdb/start` (stores the request token in a 10-min httpOnly
+   `tmdb-request-token` cookie) → `GET /api/auth/tmdb/callback` (rejects a
+   token that doesn't match that cookie — login CSRF guard; stores httpOnly
+   `tmdb-session` + readable `tmdb-user`, 30d) →
    `POST /api/auth/tmdb/logout` (also `DELETE /authentication/session`).
    `session_id` **never reaches the browser**; all account calls go through
    `app/api/tmdb/*` proxies (`me`, `states`, `toggle`, `rating`, `list`).
@@ -68,27 +82,36 @@ them through an external embed player. Single-user, private site.
 
 ## Feature inventory (where things live)
 
-- Home `app/page.tsx`: `HeroBanner` + `ContinueWatching` + `MediaRow`s.
-- Detail `app/movie/[id]/page.tsx`, `app/tv/[id]/page.tsx`: backdrop/poster
+- Layouts: root `app/layout.tsx` = fonts + `ThemeProvider` only. Every
+  protected page lives in the route group `app/(site)/` (not part of the URL),
+  whose `layout.tsx` adds `FavoritesProvider` + `Navbar`. `/login` stays
+  outside the group so it renders without the navbar.
+- Home `app/(site)/page.tsx`: `HeroBanner` + `ContinueWatching` + `MediaRow`s.
+- Detail `app/(site)/movie/[id]/page.tsx`, `app/(site)/tv/[id]/page.tsx`: backdrop/poster
   header, `ResumeWatchButton` (shows `Continue S2 E5` from localStorage),
   `TrailerDialog`, `AccountToggles` (Favorite/Watchlist/rating via proxy,
   optimistic + `Connect TMDB` fallback), Cast, Seasons (`SeasonEpisodeLoader`
   → `/api/tv/[id]/season/[season]`), Similar → Collection (`More From …`,
   movies only) → Recommendations (`You May Also Like`) → `ReviewsSection`.
   Sections render only when data exists.
-- Watch `app/watch/movie|tv/[id]/page.tsx`: external iframe player
+- Watch `app/(site)/watch/movie|tv/[id]/page.tsx`: external iframe player
   (`components/video-player.tsx`, vsembed) + `TrackMovieWatch`/`TrackTVWatch`
   (`components/track-watch.tsx`) which persist the checkpoint on view.
   Cross-origin iframe ⇒ **exact timestamp resume is impossible**; checkpoint
   is episode-level by design.
 - Cards: `MediaCard` (all grids) + `ContinueWatching` cards both embed
-  `FavoriteHeartButton` — heart top-right, **always visible** (hover-only is
+  `FavoriteHeartButton` — heart top-right (bottom-right on `ContinueWatching`
+  cards, whose top-right holds the remove X), **always visible** (hover-only is
   banned: broken on mobile), red filled (`fill="currentColor"`) when
   favorited; hidden entirely when TMDB not connected. Clicks
   `preventDefault` + `stopPropagation` (cards are links).
 - Navbar `components/navbar.tsx`: desktop links + inline search + TMDB
   status; mobile = hamburger → right `Sheet` drawer (search, Browse,
   My Library incl. Watchlist/Favorites, TMDB connect/user, site sign-out).
+  `useTmdbMe()` is called once in `Navbar` and passed down, so a TMDB
+  sign-out updates every part at once. Watchlist/Favorites (desktop links
+  and mobile My Library) render only when TMDB is connected. The TMDB user
+  is a `DropdownMenu` (`components/ui/dropdown-menu.tsx`) with Sign out.
 - `/watchlist`, `/favorites`: server pages (`force-dynamic`), `?type=` tabs
   + `PaginationControls`; logged-out → `ConnectTmdbPrompt`.
 - `/movies`, `/tv`: pure-Discover server pages (`force-dynamic`), no category
@@ -121,13 +144,3 @@ them through an external embed player. Single-user, private site.
 - Reuse `MediaCard`/`MediaRow`/shadcn primitives; don't hand-roll
   modals/drawers (use `ui/dialog`, `ui/sheet`).
 - Session/cookie code must stay Edge-compatible (WebCrypto, no `node:crypto`).
-
-## Known pending (as of 2026-09-07)
-
-- Discover filters done (year, rating, runtime, full `sort_by`, multi-genre
-  AND/OR, metadata) but **uncommitted** — verify + commit on request.
-  Deliberately out of scope: `certification*` (needs `region`), watch
-  providers (needs `watch_region` + provider list), cast/crew/people/keywords
-  (needs autocomplete), free min/max runtime inputs.
-- shadcn migration (`ui/dialog`, `ui/sheet`, navbar, trailer) implemented but
-  **uncommitted** — verify + commit on request.

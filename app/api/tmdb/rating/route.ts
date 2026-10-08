@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server"
 import { setRating } from "@/lib/tmdb-account"
 import { requireTmdbAccount } from "@/lib/tmdb-session"
+import { rejectWithoutSiteSession } from "@/lib/site-session"
 
 // POST /api/tmdb/rating { media_type, media_id, value: 0.5-10 | null }
 export async function POST(req: Request) {
+  const denied = await rejectWithoutSiteSession()
+  if (denied) return denied
+
   const authed = await requireTmdbAccount()
   if (!authed) {
     return NextResponse.json({ error: "TMDB not connected" }, { status: 401 })

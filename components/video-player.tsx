@@ -20,11 +20,13 @@ export function VideoPlayer({ type, id, season, episode }: VideoPlayerProps) {
 
   return (
     <div className="relative w-full overflow-hidden rounded-lg bg-black" style={{ paddingBottom: "56.25%" }}>
+      {/* No referrer hides this site's domain from the third-party player. It can't
+          be sandboxed: vsembed refuses to play inside <iframe sandbox>. */}
       <iframe
         src={src}
         className="absolute inset-0 w-full h-full"
         allowFullScreen
-        referrerPolicy="origin"
+        referrerPolicy="no-referrer"
         title="Video Player"
       />
     </div>

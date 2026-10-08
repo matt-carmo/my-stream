@@ -23,15 +23,16 @@ export function MediaCard({ item, type, className }: MediaCardProps) {
   const year = date ? new Date(date).getFullYear() : null
   const imageUrl = getImageUrl(item.poster_path, "w342")
 
+  const href = `/${type}/${item.id}`
+
   return (
-    <Link
-      href={`/${type}/${item.id}`}
+    <div
       className={cn(
         "group relative flex flex-col overflow-hidden rounded-lg border border-border/50 bg-card transition-all hover:border-border hover:shadow-lg hover:-translate-y-0.5",
         className
       )}
     >
-      <div className="relative aspect-2/3 w-full overflow-hidden bg-muted">
+      <Link href={href} className="relative block aspect-2/3 w-full overflow-hidden bg-muted">
         <FavoriteHeartButton
           type={type}
           id={item.id}
@@ -52,7 +53,7 @@ export function MediaCard({ item, type, className }: MediaCardProps) {
           </div>
         )}
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
+      </Link>
       <div className="flex flex-col gap-1 p-2.5">
         <p className="line-clamp-2 text-sm font-medium leading-tight">{title}</p>
         <div className="flex items-center justify-between gap-1">
@@ -67,7 +68,7 @@ export function MediaCard({ item, type, className }: MediaCardProps) {
           </div>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
 

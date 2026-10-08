@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server"
 import { setFavorite, setWatchlist } from "@/lib/tmdb-account"
 import { requireTmdbAccount } from "@/lib/tmdb-session"
+import { rejectWithoutSiteSession } from "@/lib/site-session"
 
 // POST /api/tmdb/toggle { action: "favorite" | "watchlist", media_type, media_id, value }
 export async function POST(req: Request) {
+  const denied = await rejectWithoutSiteSession()
+  if (denied) return denied
+
   const authed = await requireTmdbAccount()
   if (!authed) {
     return NextResponse.json({ error: "TMDB not connected" }, { status: 401 })

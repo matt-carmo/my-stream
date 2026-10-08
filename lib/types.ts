@@ -150,6 +150,47 @@ export interface ImagesResponse {
 
 export type MediaType = "movie" | "tv"
 
+export interface PersonKnownFor {
+  id: number
+  media_type: MediaType
+  title?: string
+  name?: string
+}
+
+export interface Person {
+  id: number
+  name: string
+  profile_path: string | null
+  known_for_department: string
+  popularity: number
+  known_for: PersonKnownFor[]
+}
+
+export type Credit<T> = T & {
+  popularity: number
+  character?: string
+  department?: string
+  job?: string
+}
+
+export interface PersonCredits<T> {
+  cast: Credit<T>[]
+  crew: Credit<T>[]
+}
+
+export interface PersonDetails {
+  id: number
+  name: string
+  biography: string
+  birthday: string | null
+  deathday: string | null
+  place_of_birth: string | null
+  profile_path: string | null
+  known_for_department: string
+  movie_credits: PersonCredits<Movie>
+  tv_credits: PersonCredits<TVShow>
+}
+
 export interface SearchResult {
   id: number
   media_type: MediaType

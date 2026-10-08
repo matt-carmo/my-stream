@@ -13,6 +13,15 @@ export {
   DialogTitle,
   DialogDescription,
 } from "./dialog"
+export {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./dropdown-menu"
 export { Input } from "./input"
 export {
   Select,

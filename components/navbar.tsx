@@ -79,12 +79,14 @@ function SearchForm({
 function MobileDrawer({
   open,
   onClose,
+  tmdb,
 }: {
   open: boolean
   onClose: () => void
+  tmdb: ReturnType<typeof useTmdbMe>
 }) {
   const pathname = usePathname()
-  const { me, signOut } = useTmdbMe()
+  const { me, signOut } = tmdb
 
   async function handleSiteSignOut() {
     await fetch("/api/auth/logout", { method: "POST" }).catch(() => null)
@@ -121,17 +123,19 @@ function MobileDrawer({
           ))}
         </nav>
 
-        <nav className="flex flex-col gap-1">
-          <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            My Library
-          </p>
-          {LIBRARY_LINKS.map(({ href, label, icon }) => (
-            <Link key={href} href={href} onClick={onClose} className={linkClass(href)}>
-              <HugeiconsIcon icon={icon} strokeWidth={1.5} className="size-5" />
-              {label}
-            </Link>
-          ))}
-        </nav>
+        {me.status === "in" && (
+          <nav className="flex flex-col gap-1">
+            <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              My Library
+            </p>
+            {LIBRARY_LINKS.map(({ href, label, icon }) => (
+              <Link key={href} href={href} onClick={onClose} className={linkClass(href)}>
+                <HugeiconsIcon icon={icon} strokeWidth={1.5} className="size-5" />
+                {label}
+              </Link>
+            ))}
+          </nav>
+        )}
 
         <div className="mt-auto flex flex-col gap-2 border-t border-border/50 pt-4">
           {me.status === "in" ? (
@@ -181,6 +185,9 @@ function MobileDrawer({
 export function Navbar() {
   const pathname = usePathname()
   const [menuOpen, setMenuOpen] = useState(false)
+  // Single source of truth so disconnecting TMDB updates every part of the navbar
+  const tmdb = useTmdbMe()
+  const desktopLinks = tmdb.me.status === "in" ? [...NAV_LINKS, ...LIBRARY_LINKS] : NAV_LINKS
 
   // Close the drawer on navigation.
   useEffect(() => {
@@ -198,7 +205,7 @@ export function Navbar() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map(({ href, label, icon }) => (
+            {desktopLinks.map(({ href, label, icon }) => (
               <Link
                 key={href}
                 href={href}
@@ -219,7 +226,7 @@ export function Navbar() {
             <SearchForm />
           </div>
 
-          <TmdbAuthButton />
+          <TmdbAuthButton {...tmdb} />
 
           <button
             type="button"
@@ -232,7 +239,7 @@ export function Navbar() {
         </div>
       </header>
 
-      <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} tmdb={tmdb} />
     </>
   )
 }
